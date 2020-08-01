@@ -46,13 +46,9 @@ def socket_join_room(room=None):
 def socket_update_state(state=None):
     if state is not None:
         oldState = get_room_state(state["_id"])
-        print(state["stateId"])
-        print(oldState["stateId"])
         if oldState["stateId"] == state["stateId"] or True:
             state["stateId"] += 1
             status = update_room(state["_id"], state)
-            print(status.modified_count)
-            print(state)
             emit("stateUpdated", state, room=state["room"])
         else:
             emit("stateUpdated", oldState, room=state["room"])
@@ -97,7 +93,6 @@ def load_ultimates():
 @app.route('/api/getSkills', methods=['POST'])
 def get_skills():
     abilities = request.json
-    print(abilities)
     skills = []
     fields = ("ability_name", "behavior", "desc", "img", "dname")
     for ab_id in abilities:
