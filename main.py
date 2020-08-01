@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_heroes_abilities_by_id, load_ability_details_by_id
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
@@ -23,7 +23,7 @@ def leave_rooms():
 app = Flask(__name__)
 __VERSION__ = '0.1a'
 ults = load_ultimates()
-heroes = load_heroes_abilities_by_id()
+heroes = load_hero_ability_ids()
 abilities_by_id = load_ability_details_by_id()
 client = MongoClient()
 db = client.get_database("dota")
@@ -123,7 +123,8 @@ def get_skills():
 @app.route('/api/hero/<int:hero_id>')
 def load_hero(hero_id):
     fields = ("ability_name", "behavior", "desc", "img", "dname")
-    skill_ids = [x for i, x in enumerate(heroes[hero_id]["abilities"]) if i in [0, 1, 2, 5]]
+
+    skill_ids = [heroes[hero_id]]
     hero_skills = []
     for ab_id in skill_ids:
         skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
