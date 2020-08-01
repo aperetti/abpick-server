@@ -119,7 +119,7 @@ def get_skills():
 def load_hero(hero_id):
     fields = ("ability_name", "behavior", "desc", "img", "dname")
 
-    skill_ids = [heroes[hero_id]]
+    skill_ids = heroes[hero_id]
     hero_skills = []
     for ab_id in skill_ids:
         skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
