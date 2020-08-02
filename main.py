@@ -28,7 +28,7 @@ abilities_by_id = load_ability_details_by_id()
 client = MongoClient()
 db = client.get_database("dota")
 ability_stats = db.get_collection("abilities")
-socketio = SocketIO(app, cors_allowed_origins="abpick.com")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 @socketio.on('joinRoom')
