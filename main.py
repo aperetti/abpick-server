@@ -14,9 +14,10 @@ def get_random_room():
 
 def leave_rooms():
     user_rooms = rooms(request.sid, '/')
-    if len(user_rooms) > 1:
-        for room in user_rooms:
-            leave_room(room, request.sid, '/')
+    for room in user_rooms:
+        if room == request.sid:
+            continue
+        leave_room(room, request.sid, '/')
     return
 
 
