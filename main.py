@@ -47,12 +47,8 @@ def socket_join_room(room=None):
 def socket_update_state(state=None):
     if state is not None:
         oldState = get_room_state(state["_id"])
-        if oldState["stateId"] == state["stateId"] or True:
-            state["stateId"] += 1
-            status = update_room(state["_id"], state)
-            emit("stateUpdated", state, room=state["room"])
-        else:
-            emit("stateUpdated", oldState, room=state["room"])
+        status = update_room(state["_id"], state)
+        emit("stateUpdated", state, room=state["room"])
 
 
 @socketio.on("createRoom")
