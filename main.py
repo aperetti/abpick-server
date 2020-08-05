@@ -8,8 +8,32 @@ import string
 import random
 from mongo_helpers import update_room, get_room_state, create_room, get_active_room
 
+
 def get_random_room():
     return ''.join(random.choice(string.ascii_uppercase) for i in range(5))
+
+
+def verify_state(state):
+    try:
+        if any([
+            len(state["skills"]) > 48,
+            len(state["pickedSkills"]) > 48,
+            len(state["pickHistory"]) > 48,
+            not isinstance(state["turn"], int),
+            state["turn"] > 100000,
+            not isinstance(state["stateId"], int),
+            state["stateId"] > 100000,
+            not isinstance(state["room"], str),
+            len(state["room"]) > 5,
+            *[x is not None and not isinstance(x, int) for x in state["skills"]],
+            *[x is not None and not isinstance(x, int) for x in state["pickedSkills"]],
+            *[x is not None and not isinstance(x, int) for x in state["pickHistory"]]
+        ]):
+            return False
+        else:
+            return True
+    except KeyError:
+        return False
 
 
 def leave_rooms():
@@ -45,9 +69,8 @@ def socket_join_room(room=None):
 
 @socketio.on('updateState')
 def socket_update_state(state=None):
-    if state is not None:
-        oldState = get_room_state(state["_id"])
-        status = update_room(state["_id"], state)
+    if verify_state(state):
+        update_room(state["_id"], state)
         emit("stateUpdated", state, room=state["room"])
 
 
