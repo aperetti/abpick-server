@@ -76,22 +76,21 @@ def socket_update_state(state=None):
 
 @socketio.on("createRoom")
 def socket_create_room(state=None):
-    if state is None:
-        return
-    leave_rooms()
-    i = 0
-    while i < 10:
-        room = get_random_room()
-        if get_active_room(room) is None:
-            state["room"] = room
-            id = create_room(state)
-            state["_id"] = id
-            join_room(room)
-            emit("roomJoined", state)
-            break
-        i += 1
-        if i == 10:
-            emit("createRoomFailed")
+    if verify_state(state):
+        leave_rooms()
+        i = 0
+        while i < 10:
+            room = get_random_room()
+            if get_active_room(room) is None:
+                state["room"] = room
+                id = create_room(state)
+                state["_id"] = id
+                join_room(room)
+                emit("roomJoined", state)
+                break
+            i += 1
+            if i == 10:
+                emit("createRoomFailed")
 
 
 @socketio.on("leaveRoom")
