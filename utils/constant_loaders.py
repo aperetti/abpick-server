@@ -91,6 +91,7 @@ def load_ultimates():
                 continue
             ultimates.append(dict(
                 heroId=hero_id,
+                heroAbilities=hero_ab_list[hero_id],
                 heroName=hero_details["localized_name"],
                 abilityId=ability_id,
                 abilityName=abilities[ability_id]['dname'],

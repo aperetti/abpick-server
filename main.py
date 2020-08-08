@@ -45,6 +45,28 @@ def leave_rooms():
     return
 
 
+def load_skills(abilities):
+    skills = []
+    fields = ("ability_name", "behavior", "desc", "img", "dname")
+    for ab_id in abilities:
+        skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
+        skill_details["ability_id"] = ab_id
+        skill_details["stats"] = ability_stats.find_one(
+            {"_id": ab_id},
+            {
+                'mean': 1,
+                'pick_rate': 1,
+                'pick_rate_rounds': 1,
+                'std': 1,
+                'win_rate': 1,
+                'win_rate_rounds': 1,
+                'survival': 1
+            })
+        if skill_details["stats"] == None:
+            continue
+        skills.append(skill_details)
+    return skills
+
 app = Flask(__name__)
 __VERSION__ = '0.1a'
 ults = load_ultimates()
@@ -112,52 +134,14 @@ def load_ultimates():
 @app.route('/api/getSkills', methods=['POST'])
 def get_skills():
     abilities = request.json
-    skills = []
-    fields = ("ability_name", "behavior", "desc", "img", "dname")
-    for ab_id in abilities:
-        skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
-        skill_details["ability_id"] = ab_id
-        skill_details["stats"] = ability_stats.find_one(
-            {"_id": ab_id},
-            {
-                'mean': 1,
-                'pick_rate': 1,
-                'pick_rate_rounds': 1,
-                'std': 1,
-                'win_rate': 1,
-                'win_rate_rounds': 1,
-                'survival': 1
-            })
-        if skill_details["stats"] == None:
-            continue
-        skills.append(skill_details)
+    skills = load_skills(abilities)
     return Response(simplejson.dumps(humps.camelize(skills), ignore_nan=True), mimetype="application/json")
 
 
 @app.route('/api/hero/<int:hero_id>')
 def load_hero(hero_id):
-    fields = ("ability_name", "behavior", "desc", "img", "dname")
-
     skill_ids = heroes[hero_id]
-    hero_skills = []
-    for ab_id in skill_ids:
-        skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
-        skill_details["ability_id"] = ab_id
-        skill_details["stats"] = ability_stats.find_one(
-            {"_id": ab_id},
-            {
-                'mean': 1,
-                'pick_rate': 1,
-                'pick_rate_rounds': 1,
-                'std': 1,
-                'win_rate': 1,
-                'win_rate_rounds': 1,
-                'survival': 1
-            })
-        if skill_details["stats"] == None:
-            continue
-        hero_skills.append(skill_details)
-
+    hero_skills = load_skills(skill_ids)
     return simplejson.dumps(humps.camelize(hero_skills), ignore_nan=True)
 
 
