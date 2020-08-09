@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, detect_skills
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
@@ -68,6 +68,7 @@ def load_skills(abilities):
     return skills
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 __VERSION__ = '0.1a'
 ults = load_ultimates()
 heroes = load_hero_ability_ids()
@@ -76,7 +77,11 @@ client = MongoClient()
 db = client.get_database("dota")
 ability_stats = db.get_collection("abilities")
 socketio = SocketIO(app, cors_allowed_origins="*")
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @socketio.on('joinRoom')
 def socket_join_room(room=None):
@@ -137,6 +142,26 @@ def get_skills():
     skills = load_skills(abilities)
     return Response(simplejson.dumps(humps.camelize(skills), ignore_nan=True), mimetype="application/json")
 
+
+@app.route('/api/postBoard', methods=['POST'])
+def post_board():
+    if 'file' not in request.files:
+        return {
+            "error": "File not found",
+        }
+    file = request.files['file']
+    # if user does not select file, browser also
+    # submit an empty part without filename
+    if file.filename == '':
+        return {
+            "error": "No file was uploaded",
+        }
+
+    if file and allowed_file(file.filename):
+        skills = detect_skills(file)
+        return {
+            "result": skills
+        }
 
 @app.route('/api/hero/<int:hero_id>')
 def load_hero(hero_id):
