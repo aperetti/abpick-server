@@ -9,6 +9,8 @@ ultIds = [ult["abilityId"] for ult in load_ultimates()['ultimates']]
 ult_icons = np.stack(
     [np.asarray(Image.open(f'resources/abilities/{ult}.png'))[:,:,:3] / 255. for ult in ultIds])
 
+class ResolutionException(Exception):
+    pass
 
 def find_coeffs(pb, pa):
     matrix = []
@@ -32,6 +34,9 @@ def extract1080(image_path):
 
     img = Image.open(image_path)
     width, height = img.size
+    if width != 1920 or height != 1080:
+        raise ResolutionException
+
     coeffs = find_coeffs(*res1080a)
     img: Image.Image = img.transform((width, height), Image.PERSPECTIVE, coeffs,
                                      Image.BICUBIC)

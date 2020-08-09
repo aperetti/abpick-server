@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, detect_skills
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, detect_skills, ResolutionException
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
@@ -158,10 +158,19 @@ def post_board():
         }
 
     if file and allowed_file(file.filename):
-        skills = detect_skills(file)
-        return {
-            "result": skills
-        }
+        try:
+            skills = detect_skills(file)
+            return {
+                "result": skills
+            }
+        except ResolutionException:
+            return {
+                "error": "Resolution must be 1920x1080."
+            }
+        except Exception:
+            return {
+                "error": "Could not process image."
+            }
 
 @app.route('/api/hero/<int:hero_id>')
 def load_hero(hero_id):
