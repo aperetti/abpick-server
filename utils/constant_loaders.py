@@ -1,17 +1,18 @@
 import json
 
-def load_abilitiy_id_lookup():
-    with open('utils/build/ability_ids.json', 'r') as f:
+
+def load_ability_id_lookup():
+    with open('utils/dotaconstants/build/ability_ids.json', 'r') as f:
         ability_ids = json.load(f)
         ability_id_lookup = {v: int(k) for k, v in ability_ids.items()}
     return ability_id_lookup
 
 
 def load_abilty_details():
-    with open('utils/build/abilities.json', 'r') as f:
+    with open('utils/dotaconstants/build/abilities.json', 'r') as f:
         abilities_by_name: dict = json.load(f)
 
-    id_lookup = load_abilitiy_id_lookup()
+    id_lookup = load_ability_id_lookup()
     abilities_by_id = dict()
     for key, values in abilities_by_name.items():
         try:
@@ -31,19 +32,19 @@ def load_ability_details_by_id():
 
 
 def load_hero_by_name():
-    with open('utils/build/hero_names.json', 'r') as f:
+    with open('utils/dotaconstants/build/hero_names.json', 'r') as f:
         hero_details_by_name: dict = json.load(f)
     return hero_details_by_name
 
 
 def load_hero_by_id():
-    with open('utils/build/heroes.json', 'r') as f:
+    with open('utils/dotaconstants/build/heroes.json', 'r') as f:
         hero_details_by_id: dict = json.load(f)
     return hero_details_by_id
 
 
 def load_heroes_abilities_by_name():
-    with open('utils/build/hero_abilities.json', 'r') as f:
+    with open('utils/dotaconstants/build/hero_abilities.json', 'r') as f:
         hero_abilities: dict = json.load(f)
     return hero_abilities
 
@@ -58,10 +59,12 @@ def load_heroes_abilities_by_id():
         hero_abilities_by_id.update({heroes[key]['id']: item})
     return hero_abilities_by_id
 
+
 def load_hero_ability_list():
-    with open('utils/build/hero_skills.json', 'r') as f:
+    with open('utils/dotaconstants/build/hero_skills.json', 'r') as f:
         hero_skills: dict = json.load(f)
     return hero_skills
+
 
 def load_hero_ability_ids():
     hero_ab = load_hero_ability_list()
@@ -75,6 +78,7 @@ def load_hero_ability_ids():
         except KeyError:
             print(f"Skipping {hero}")
     return heroes
+
 
 def load_ultimates():
     hero_abs = load_heroes_abilities_by_id()

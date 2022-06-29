@@ -35,4 +35,4 @@ for hero, data in heroes.items():
     hero_skills[hero] = skills
 
 
-dump(hero_skills, open("utils/build/hero_skills.json", 'w+'))
+dump(hero_skills, open("utils/dotaconstants/build/hero_skills.json", 'w+'))

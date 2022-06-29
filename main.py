@@ -1,17 +1,17 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, detect_skills, ResolutionException
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
 import string
 import random
 from mongo_helpers import update_room, get_room_state, create_room, get_active_room
+from functools import lru_cache
 
 
 def get_random_room():
     return ''.join(random.choice(string.ascii_uppercase) for i in range(5))
-
 
 def verify_state(state):
     try:
@@ -44,27 +44,34 @@ def leave_rooms():
         leave_room(room, request.sid, '/')
     return
 
+@lru_cache(maxsize=None)
+def load_skill(ab_id):
+    fields = ("ability_name", "behavior", "desc", "img", "dname")
+    skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
+    skill_details["ability_id"] = ab_id
+    skill_details["stats"] = ability_stats.find_one(
+        {"_id": ab_id},
+        {
+            'mean': 1,
+            'pick_rate': 1,
+            'pick_rate_rounds': 1,
+            'std': 1,
+            'win_rate': 1,
+            'win_rate_rounds': 1,
+            'survival': 1
+        })
+    return skill_details
 
 def load_skills(abilities):
     skills = []
-    fields = ("ability_name", "behavior", "desc", "img", "dname")
     for ab_id in abilities:
-        skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
-        skill_details["ability_id"] = ab_id
-        skill_details["stats"] = ability_stats.find_one(
-            {"_id": ab_id},
-            {
-                'mean': 1,
-                'pick_rate': 1,
-                'pick_rate_rounds': 1,
-                'std': 1,
-                'win_rate': 1,
-                'win_rate_rounds': 1,
-                'survival': 1
-            })
-        if skill_details["stats"] == None:
+        try:
+            skill_details = load_skill(ab_id)
+            if skill_details["stats"] == None:
+                continue
+            skills.append(skill_details)
+        except KeyError:
             continue
-        skills.append(skill_details)
     return skills
 
 app = Flask(__name__)
@@ -135,6 +142,17 @@ def abpick_api():
 def load_ultimates():
     return ults
 
+@app.route('/api/parseConsole', methods=['POST'])
+def parse_console():
+    console_log = request.get_data().decode('utf-8')
+    hero_ids = parse_heroes(console_log)
+    game_heroes = []
+    for hero_id in hero_ids:
+        skill_ids = heroes[int(hero_id)]
+        hero_skills = load_skills(skill_ids)
+        game_heroes.append(hero_skills)
+
+    return simplejson.dumps(humps.camelize(game_heroes), ignore_nan=True)
 
 @app.route('/api/getSkills', methods=['POST'])
 def get_skills():
@@ -143,40 +161,52 @@ def get_skills():
     return Response(simplejson.dumps(humps.camelize(skills), ignore_nan=True), mimetype="application/json")
 
 
-@app.route('/api/postBoard', methods=['POST'])
-def post_board():
-    if 'file' not in request.files:
-        return {
-            "error": "File not found",
-        }
-    file = request.files['file']
-    # if user does not select file, browser also
-    # submit an empty part without filename
-    if file.filename == '':
-        return {
-            "error": "No file was uploaded",
-        }
+# @app.route('/api/postBoard', methods=['POST'])
+# def post_board():
+#     if 'file' not in request.files:
+#         return {
+#             "error": "File not found",
+#         }
+#     file = request.files['file']
+#     # if user does not select file, browser also
+#     # submit an empty part without filename
+#     if file.filename == '':
+#         return {
+#             "error": "No file was uploaded",
+#         }
 
-    if file and allowed_file(file.filename):
-        try:
-            skills = detect_skills(file)
-            return {
-                "result": skills
-            }
-        except ResolutionException:
-            return {
-                "error": "Resolution must be 1920x1080."
-            }
-        except Exception:
-            return {
-                "error": "Could not process image."
-            }
+#     if file and allowed_file(file.filename):
+#         try:
+#             skills = detect_skills(file)
+#             return {
+#                 "result": skills
+#             }
+#         except ResolutionException:
+#             return {
+#                 "error": "Resolution must be 1920x1080."
+#             }
+#         except Exception as e:
+#             print(e)
+#             return {
+#                 "error": "Could not process image."
+#             }
 
 @app.route('/api/hero/<int:hero_id>')
 def load_hero(hero_id):
     skill_ids = heroes[hero_id]
     hero_skills = load_skills(skill_ids)
     return simplejson.dumps(humps.camelize(hero_skills), ignore_nan=True)
+
+@app.route('/api/hero')
+def load_all_heroes():
+    skill_dict = {}
+    for hero, skills in heroes.items():
+        skill_dict[hero] = load_skills(skills)
+    return simplejson.dumps(humps.camelize(skill_dict), ignore_nan=True)
+
+
+
+
 
 
 if __name__ == '__main__':
