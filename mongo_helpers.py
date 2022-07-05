@@ -9,7 +9,7 @@ room_collection = db.get_collection("rooms")
 
 
 def trim_state(state):
-    return {k: v for k, v in state.items() if k in ["skills", "pickedSkills", "pickHistory", "turn", "stateId", "room", "lastUpdate"]}
+    return {k: v for k, v in state.items() if k in ["skills", "pickHistory", "stateId", "room", "lastUpdate"]}
 
 
 def get_active_room(room):

@@ -61,7 +61,7 @@ def load_heroes_abilities_by_id():
 
 
 def load_hero_ability_list():
-    with open('utils/dotaconstants/build/hero_skills.json', 'r') as f:
+    with open('resources/hero_skills.json', 'r') as f:
         hero_skills: dict = json.load(f)
     return hero_skills
 
@@ -79,6 +79,13 @@ def load_hero_ability_ids():
             print(f"Skipping {hero}")
     return heroes
 
+def load_list_ad_abilitity_ids():
+    hero_ab = load_hero_ability_list()
+    ability_list = load_ability_id_lookup()
+    ability_names = []
+    for hero, skills in hero_ab.items():
+        ability_names.extend(skills)
+    return [ability_list[name] for name in ability_names if name in ability_list]
 
 def load_ultimates():
     hero_abs = load_heroes_abilities_by_id()

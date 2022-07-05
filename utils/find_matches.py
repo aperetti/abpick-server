@@ -50,10 +50,15 @@ class FindMatches:
             match_detail: InlineResponse2009 = self.match_client.matches_match_id_get(match_id=match['match_id'])
             self.db.insert_match_details(match_detail)
 
+    def prime_players(self):
+        self.db.get
 
-search = FindMatches()
 
-players = search.get_ab_players()
-for player in tqdm(players, "Finding New Matches from AB Players", position=0):
-    search.find_new_matches(player['_id'])
-    search.parse_matches(bar_position=1)
+if __name__ == "__main__":
+
+    search = FindMatches()
+
+    players = search.get_ab_players()
+    for player in tqdm(players, "Finding New Matches from AB Players", position=0):
+        search.find_new_matches(player['_id'])
+        search.parse_matches(bar_position=1)

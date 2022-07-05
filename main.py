@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes, Predictor
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
@@ -8,6 +8,8 @@ import string
 import random
 from mongo_helpers import update_room, get_room_state, create_room, get_active_room
 from functools import lru_cache
+from xgboost import XGBRegressor
+
 
 
 def get_random_room():
@@ -17,18 +19,15 @@ def verify_state(state):
     try:
         if any([
             len(state["skills"]) > 48,
-            len(state["pickedSkills"]) > 48,
             len(state["pickHistory"]) > 48,
-            not isinstance(state["turn"], int),
-            state["turn"] > 100000,
             not isinstance(state["stateId"], int),
             state["stateId"] > 100000,
             not isinstance(state["room"], str),
             len(state["room"]) > 5,
             *[x is not None and not isinstance(x, int) for x in state["skills"]],
-            *[x is not None and not isinstance(x, int) for x in state["pickedSkills"]],
             *[x is not None and not isinstance(x, int) for x in state["pickHistory"]]
         ]):
+            print("State Failed to Validate")
             return False
         else:
             return True
@@ -85,6 +84,8 @@ db = client.get_database("dota")
 ability_stats = db.get_collection("abilities")
 socketio = SocketIO(app, cors_allowed_origins="*")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+predictor = Predictor()
+
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -204,8 +205,11 @@ def load_all_heroes():
         skill_dict[hero] = load_skills(skills)
     return simplejson.dumps(humps.camelize(skill_dict), ignore_nan=True)
 
-
-
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    req = request.json
+    res = predictor.predict(req["picked"], req["available"])
+    return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 
 
 

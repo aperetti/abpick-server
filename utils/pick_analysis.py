@@ -7,9 +7,28 @@ from datetime import datetime, timedelta
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
+from constant_loaders import load_list_ad_abilitity_ids
+from xgboost import DMatrix, train, XGBRegressor
+import pickle
+from dataclasses import dataclass
+import json
 
 class NoSkillDataException(Exception):
     pass
+
+@dataclass
+class Dataset:
+    X: np.array
+    y: np.array
+
+
+def updatePlayerStats():
+    client = MongoClient()
+    db = client.get_database("dota")
+    matches: Collection = db.match_details
+    players: Collection = db.players
+
+    {"$and": [{"skill": {"$ne": null}}, {"skill": {"$ne": 1}}]}
 
 class PickAnalysis:
     def __init__(self):
@@ -133,5 +152,6 @@ class PickAnalysis:
 
 
 if __name__ == '__main__':
-    df_main = PickAnalysis().set_pick_id(5290).get_pick_survival()
-    plt.show()
+    # df_main = PickAnalysis().get_draft_training_set()
+    df_main = PickAnalysis().generate_models()
+

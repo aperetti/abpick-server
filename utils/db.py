@@ -69,9 +69,13 @@ class Database:
         for match in player_history:
             res = self.matches.update_one({"_id": match["match_id"]}, {"$set": match}, upsert=True)
 
-        self.ab_players.update_one({"_id": player_id},
-                                   {"$set": {"last_run": datetime.now().timestamp()}},
-                                   upsert=True)
+            self.ab_players.update_one(
+                {"_id": player_id},
+                {
+                    "$set": {"last_run": datetime.now().timestamp()}
+                },
+                upsert=True
+            )
 
         return
 
@@ -86,11 +90,37 @@ class Database:
             res = self.match_details.insert_one(match)
             self.matches.update_one({"_id": match["_id"]}, {"$set": {"parsed": True}})
             for player in match["players"]:
+                player_won = (player["radiant_win"] and player["player_slot"] < 5) or (not player["radiant_win"] and player["player_slot"] >= 5)
+                good_skill = (match["skill"] or 0) >= 2
                 if player["account_id"] is not None:
-                    self.ab_players.update_one({"_id": player['account_id']}, {"$max": {"last_run": 0}}, upsert=True)
+                    self.ab_players.update_one({"_id": player['account_id']},
+                        {
+                            "$max": {"last_run": 0},
+                            "$set": {"rank": player["rank_tier"]},
+                            "$inc": {
+                                "win": 1 if player_won else 0,
+                                "skill": 1 if good_skill else 0,
+                                "played": 1,
+                            }
+                        },
+                        upsert=True)
         except DuplicateKeyError:
             print(f"Already Parsed {match['match_id']}")
 
 
     def get_unparsed_matches(self) -> List[PlayerMatches]:
         return list(self.matches.find({"parsed": {"$ne": True}}, {"match_id": 1}))
+
+    def update_player_ranks(self):
+        for player in self.ab_players.find():
+            match = self.match_details.find_one(
+                {"players": {"$elemMatch": {"account_id": player["_id"]}}},
+                { "players.$": 1}
+                )
+            rank = match["players"][0]["rank_tier"]
+            self.ab_players.update_one({"_id": player["_id"]}, {"$set": {"rank": rank}})
+
+
+if __name__ == "__main__":
+    db = Database()
+    db.update_player_ranks()

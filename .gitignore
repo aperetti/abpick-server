@@ -2,3 +2,4 @@
 /venv/
 /.idea/
 *.pyc
+resources/skill_training.pkl
