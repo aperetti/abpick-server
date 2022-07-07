@@ -9,20 +9,23 @@ import random
 from mongo_helpers import update_room, get_room_state, create_room, get_active_room
 from functools import lru_cache
 from xgboost import XGBRegressor
+from bson.objectid import ObjectId
 
 
 def get_random_room():
     return ''.join(random.choice(string.ascii_uppercase) for i in range(5))
 
 
-def verify_state(state):
+def verify_state(state, room_state=None):
     try:
+
         if any([
             len(state["skills"]) > 48,
             len(state["pickHistory"]) > 48,
             not isinstance(state["stateId"], int),
             state["stateId"] > 100000,
             not isinstance(state["room"], str),
+            room_state is not None and state["stateId"] < room_state["stateId"],
             len(state["room"]) > 5,
             *[x is not None and not isinstance(x, int)
               for x in state["skills"]],
@@ -129,9 +132,15 @@ def socket_join_room(room=None):
 
 @socketio.on('updateState')
 def socket_update_state(state=None):
-    if verify_state(state):
+    room_state = db.get_collection('rooms').find_one({'_id': ObjectId(state["_id"])})
+    if room_state is None:
+        return
+    if verify_state(state, room_state):
         update_room(state["_id"], state)
         emit("stateUpdated", state, room=state["room"])
+    else:
+        room_state["_id"] = str(room_state["_id"])
+        emit("stateUpdated", room_state, room=state["room"])
 
 
 @socketio.on("createRoom")
