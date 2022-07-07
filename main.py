@@ -1,6 +1,6 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes, Predictor
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes, Predictor, load_hero_by_id
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
@@ -11,9 +11,9 @@ from functools import lru_cache
 from xgboost import XGBRegressor
 
 
-
 def get_random_room():
     return ''.join(random.choice(string.ascii_uppercase) for i in range(5))
+
 
 def verify_state(state):
     try:
@@ -24,7 +24,8 @@ def verify_state(state):
             state["stateId"] > 100000,
             not isinstance(state["room"], str),
             len(state["room"]) > 5,
-            *[x is not None and not isinstance(x, int) for x in state["skills"]],
+            *[x is not None and not isinstance(x, int)
+              for x in state["skills"]],
             *[x is not None and not isinstance(x, int) for x in state["pickHistory"]]
         ]):
             print("State Failed to Validate")
@@ -43,10 +44,30 @@ def leave_rooms():
         leave_room(room, request.sid, '/')
     return
 
+
 @lru_cache(maxsize=None)
 def load_skill(ab_id):
+    if ab_id == None:
+        return {
+            "ability_id": -1,
+            "ability_name": "needs_selection",
+            "behavior": None,
+            "desc": None,
+            "img": None,
+            "dname": "Needs Selection",
+            "stats": {
+                'mean': 0,
+                'pick_rate': 0,
+                'pick_rate_rounds': [],
+                'std': 0,
+                'win_rate': 0,
+                'win_rate_rounds': [],
+                'survival': []
+            }
+        }
     fields = ("ability_name", "behavior", "desc", "img", "dname")
-    skill_details = {k: v for k, v in abilities_by_id[ab_id].items() if k in fields}
+    skill_details = {k: v for k,
+                     v in abilities_by_id[ab_id].items() if k in fields}
     skill_details["ability_id"] = ab_id
     skill_details["stats"] = ability_stats.find_one(
         {"_id": ab_id},
@@ -61,6 +82,7 @@ def load_skill(ab_id):
         })
     return skill_details
 
+
 def load_skills(abilities):
     skills = []
     for ab_id in abilities:
@@ -73,11 +95,13 @@ def load_skills(abilities):
             continue
     return skills
 
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 __VERSION__ = '0.1a'
 ults = load_ultimates()
 heroes = load_hero_ability_ids()
+hero_by_id = load_hero_by_id()
 abilities_by_id = load_ability_details_by_id()
 client = MongoClient()
 db = client.get_database("dota")
@@ -90,6 +114,7 @@ predictor = Predictor()
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @socketio.on('joinRoom')
 def socket_join_room(room=None):
@@ -143,6 +168,7 @@ def abpick_api():
 def load_ultimates():
     return ults
 
+
 @app.route('/api/parseConsole', methods=['POST'])
 def parse_console():
     console_log = request.get_data().decode('utf-8')
@@ -154,6 +180,7 @@ def parse_console():
         game_heroes.append(hero_skills)
 
     return simplejson.dumps(humps.camelize(game_heroes), ignore_nan=True)
+
 
 @app.route('/api/getSkills', methods=['POST'])
 def get_skills():
@@ -198,19 +225,26 @@ def load_hero(hero_id):
     hero_skills = load_skills(skill_ids)
     return simplejson.dumps(humps.camelize(hero_skills), ignore_nan=True)
 
+
 @app.route('/api/hero')
 def load_all_heroes():
     skill_dict = {}
+    hero_dict = {}
     for hero, skills in heroes.items():
+        hero_dict[hero] = hero_by_id[str(hero)]["localized_name"]
         skill_dict[hero] = load_skills(skills)
-    return simplejson.dumps(humps.camelize(skill_dict), ignore_nan=True)
+    res = {
+        "skill_dict": skill_dict,
+        "hero_dict": hero_dict
+    }
+    return simplejson.dumps(humps.camelize(res), ignore_nan=True)
+
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
     req = request.json
     res = predictor.predict(req["picked"], req["available"])
     return simplejson.dumps(humps.camelize(res), ignore_nan=True)
-
 
 
 if __name__ == '__main__':

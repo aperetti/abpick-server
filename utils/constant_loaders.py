@@ -99,13 +99,16 @@ def load_ultimates():
             hero_details = heroes[str(hero_id)]
             ability_id = hero_ab_list[hero_id][3]
             if ability_id is None:
-                continue
+                ability_id == -1
+                ability_name = "Needs Selection"
+            else:
+                ability_name = abilities[ability_id]['dname']
             ultimates.append(dict(
                 heroId=hero_id,
                 heroAbilities=hero_ab_list[hero_id],
                 heroName=hero_details["localized_name"],
                 abilityId=ability_id,
-                abilityName=abilities[ability_id]['dname'],
+                abilityName=ability_name,
             ))
         except KeyError:
             print("Did not load {hero}")
