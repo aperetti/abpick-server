@@ -6,7 +6,7 @@ import simplejson
 import humps
 import string
 import random
-from mongo_helpers import update_room, get_room_state, create_room, get_active_room
+from mongo_helpers import update_room, get_room_state, create_room, get_active_room, update_room_count
 from functools import lru_cache
 from xgboost import XGBRegressor
 from bson.objectid import ObjectId
@@ -44,7 +44,10 @@ def leave_rooms():
     for room in user_rooms:
         if room == request.sid:
             continue
+        update_room_count(room, -1, use_room_name=True)
         leave_room(room, request.sid, '/')
+        room_state = get_active_room(room)
+        emit('stateUpdated', room_state, room=room)
     return
 
 
@@ -127,7 +130,10 @@ def socket_join_room(room=None):
     if room_details is not None:
         leave_rooms()
         join_room(room)
+        update_room_count(room_details["_id"], 1)
+        room_details = get_active_room(room)
         emit("roomJoined", room_details)
+        emit("stateUpdated", room_details, room=room)
 
 
 @socketio.on('updateState')

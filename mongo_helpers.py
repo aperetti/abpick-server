@@ -9,7 +9,7 @@ room_collection = db.get_collection("rooms")
 
 
 def trim_state(state):
-    return {k: v for k, v in state.items() if k in ["skills", "pickHistory", "stateId", "room", "lastUpdate"]}
+    return {k: v for k, v in state.items() if k in ["skills", "pickHistory", "stateId", "room", "lastUpdate", "roomCount"]}
 
 
 def get_active_room(room):
@@ -30,6 +30,12 @@ def create_room(state):
     res: InsertOneResult = room_collection.insert_one(trim_state(state))
     return str(res.inserted_id)
 
+def update_room_count(id_string, count, use_room_name=False):
+    if not use_room_name:
+        qry = {"_id": ObjectId(id_string)}
+    else:
+        qry = {"room" : id_string}
+    status = room_collection.update_one(qry, {"$inc":{"roomCount": count, "stateId": 1}})
 
 def get_room_state(id_string):
     res = room_collection.find_one({"_id": ObjectId(id_string)})
