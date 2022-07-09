@@ -1,5 +1,5 @@
 import od_python
-from od_python import InlineResponse20015, InlineResponse2009
+from od_python import InlineResponse20015, InlineResponse2009, rest
 from typing import List
 from db import Database, AbilityPlayer
 from datetime import timedelta, datetime
@@ -21,10 +21,14 @@ class FindMatches:
     def find_new_matches(self, account_id, age_limit: timedelta = timedelta(weeks=8), max_queries=100):
         player = self.db.get_player(account_id)
         for i in range(max_queries):
-            matches: List[InlineResponse20015] = self.player_client.players_account_id_matches_get(account_id,
-                                                                                                   game_mode=18,
-                                                                                                   significant=0,
-                                                                                                   offset=i * 50)
+            try:
+                matches: List[InlineResponse20015] = self.player_client.players_account_id_matches_get(account_id,
+                                                                                                    game_mode=18,
+                                                                                                    significant=0,
+                                                                                                    offset=i * 50)
+            except rest.ApiException:
+                continue
+
             matches = [match for match in matches if
                        match.start_time + age_limit.total_seconds() > datetime.now().timestamp()]
             if matches is None or len(matches) == 0:
