@@ -38,6 +38,7 @@ class Trainer:
         self.client = MongoClient()
         self.db = self.client.get_database("dota")
         self.matches: Collection = self.db.match_details
+        self.days = 60
 
     def get_draft_training_set(self):
 

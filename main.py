@@ -6,9 +6,8 @@ import simplejson
 import humps
 import string
 import random
-from mongo_helpers import update_room, get_room_state, create_room, get_active_room, update_room_count
+from mongo_helpers import getBestCombos, update_room, get_room_state, create_room, get_active_room, update_room_count
 from functools import lru_cache
-from xgboost import XGBRegressor
 from bson.objectid import ObjectId
 
 
@@ -21,7 +20,7 @@ def verify_state(state, room_state=None):
 
         if any([
             len(state["skills"]) > 48,
-            len(state["pickHistory"]) > 48,
+            len(state["picks"]) > 48,
             not isinstance(state["stateId"], int),
             state["stateId"] > 100000,
             not isinstance(state["room"], str),
@@ -29,7 +28,7 @@ def verify_state(state, room_state=None):
             len(state["room"]) > 5,
             *[x is not None and not isinstance(x, int)
               for x in state["skills"]],
-            *[x is not None and not isinstance(x, int) for x in state["pickHistory"]]
+            *[x is not None and not isinstance(x, int) for x in state["picks"]]
         ]):
             print("State Failed to Validate")
             return False
@@ -268,6 +267,11 @@ def predict():
     res = predictor.predict(req["picked"], req["available"])
     return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 
+@app.route('/api/bestCombos', methods=['POST'])
+def bestCombos():
+    req = request.json
+    res = getBestCombos(req["pickedSkills"], req["availableSkills"])
+    return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 
 if __name__ == '__main__':
     socketio.run(app)

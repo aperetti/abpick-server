@@ -1,10 +1,12 @@
 from pick_analysis import NoSkillDataException, PickAnalysis
 from constant_loaders import load_ability_details_by_id
+from tqdm import tqdm
 
 pick = PickAnalysis()
 id_lu = load_ability_details_by_id()
 
-for id in pick.get_distinct_abilities():
+PickAnalysis().combo_picks()
+for id in tqdm(pick.get_distinct_abilities()):
     try:
         pick.set_pick_id(id).save_pick_analytics()
     except NoSkillDataException:
