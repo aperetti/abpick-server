@@ -1,12 +1,12 @@
 from flask import Flask, request, Response
 from flask_socketio import SocketIO, join_room, leave_room, emit, rooms
-from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes, Predictor, load_hero_by_id
+from utils import load_ultimates, load_ability_details_by_id, load_hero_ability_ids, parse_heroes, SkillPredictor, load_hero_by_id
 from pymongo.mongo_client import MongoClient
 import simplejson
 import humps
 import string
 import random
-from mongo_helpers import getBestCombos, update_room, get_room_state, create_room, get_active_room, update_room_count
+from mongo_helpers import getBestCombos, getSkillMetrics, update_room, get_room_state, create_room, get_active_room, update_room_count
 from functools import lru_cache
 from bson.objectid import ObjectId
 
@@ -120,7 +120,7 @@ db = client.get_database("dota")
 ability_stats = db.get_collection("abilities")
 socketio = SocketIO(app, cors_allowed_origins="*")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-predictor = Predictor()
+predictor = SkillPredictor()
 
 
 def allowed_file(filename):
@@ -260,6 +260,11 @@ def load_all_heroes():
     }
     return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 
+@app.route('/api/skillMetrics', methods=['POST'])
+def balance():
+    req = request.json
+    res = getSkillMetrics(req)
+    return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 
 @app.route('/api/predict', methods=['POST'])
 def predict():

@@ -1,7 +1,11 @@
+from dataclasses import dataclass
+from re import X
 from xgboost import XGBRegressor
 import numpy as np
 from pymongo import MongoClient
+from pymongo.collection import Collection
 from utils import load_list_ad_abilitity_ids
+import pickle
 labels =["y_damage", "y_gold", "y_kills", "y_deaths", "y_win"]
 
 def load_model(model_name):
@@ -9,7 +13,14 @@ def load_model(model_name):
     model.load_model(f"resources/{model_name}.json")
     return model
 
-class Predictor:
+
+@dataclass
+class Dataset:
+    X: np.array
+    y: np.array
+
+
+class SkillPredictor:
     def __init__(self):
         self.models = {x: load_model(x) for x in labels}
         self.ab = load_list_ad_abilitity_ids()
@@ -33,7 +44,7 @@ class Predictor:
         return predictions
 
 
-class Trainer:
+class SkillTrainer:
     def __init__(self):
         self.client = MongoClient()
         self.db = self.client.get_database("dota")
@@ -102,7 +113,7 @@ class Trainer:
 
         y = np.asarray(training_set[label])
 
-        split_idx = int(X.shape[0]*.9)
+        split_idx = int(X.shape[0]*split)
 
         train = Dataset(X[:split_idx, :], y[:split_idx])
         test = Dataset(X[split_idx:, :], y[split_idx:])

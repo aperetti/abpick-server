@@ -2,11 +2,40 @@ from pymongo import MongoClient
 from pymongo.results import InsertOneResult
 from datetime import datetime
 from bson.objectid import ObjectId
-from itertools import product
+from itertools import combinations, product
 
 client = MongoClient()
 db = client.get_database("dota")
 room_collection = db.get_collection("rooms")
+
+def getSkillMetrics(skills):
+    keys = ["gold", "damage", "kills", "deaths", "assists", "xp", "tower"]
+    key_func = [max, max, max, min, max, max, max]
+    values = [0,0,0,float('inf'),0,0,0]
+
+    combos = combinations(skills, 2)
+    search = []
+    for x in combos:
+        if x[0] > x[1]:
+            search.append({"_id": {"skill1": x[1], "skill2": x[0]}})
+        else:
+            search.append({"_id": {"skill1": x[0], "skill2": x[1]}})
+
+    if len(search) > 0:
+        curs = db.get_collection("combos").find({"$or": search})
+
+        for combo in curs:
+            for i, key in enumerate(keys):
+                values[i] = key_func[i](combo[key], values[i])
+
+    curs = db.get_collection("abilities").find({"$or": [{"_id": x } for x in skills]})
+
+    for skill in curs:
+        for i, key in enumerate(keys):
+            values[i] = key_func[i](skill[key], values[i])
+
+    return dict(zip(keys, values))
+
 
 def getBestCombos(picked_skills, available_skills):
     combos = product(picked_skills, available_skills)
@@ -66,3 +95,28 @@ def get_room_state(id_string):
         res = {k: v for k, v in res.items() if k not in ['lastUpdate']}
         res["_id"] = str(res["_id"])
     return res
+
+
+def get_max_metrics():
+    keys = ["gold", "damage", "kills", "deaths", "assists", "xp", "tower"]
+    d = {}
+    for key in keys:
+        sort_k = -1
+        if key == "deaths":
+            sort_k = 1
+
+        ability = db.get_collection("combos").find({}).sort(key, sort_k).__next__()
+        d[key] = ability[key]
+
+    for key in keys:
+        sort_k = -1
+        if key == "deaths":
+            sort_k = 1
+
+        ability = db.get_collection("combos").find({}).sort(key, sort_k).__next__()
+        if key == "deaths":
+
+            d[key] = min(d[key], ability[key])
+        else:
+            d[key] = max(d[key], ability[key])
+    return d
