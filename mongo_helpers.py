@@ -97,14 +97,14 @@ def get_room_state(id_string):
     return res
 
 
-def get_max_metrics():
+def get_max_metrics(calc_min=False):
     keys = ["gold", "damage", "kills", "deaths", "assists", "xp", "tower"]
     d = {}
     for key in keys:
         sort_k = -1
         if key == "deaths":
             sort_k = 1
-
+        sort_k = sort_k * -1 if calc_min else sort_k
         ability = db.get_collection("combos").find({}).sort(key, sort_k).__next__()
         d[key] = ability[key]
 
@@ -113,10 +113,14 @@ def get_max_metrics():
         if key == "deaths":
             sort_k = 1
 
+        sort_k = sort_k * -1 if calc_min else sort_k
+
         ability = db.get_collection("combos").find({}).sort(key, sort_k).__next__()
         if key == "deaths":
-
-            d[key] = min(d[key], ability[key])
+            d[key] = max(d[key], ability[key]) if calc_min else min(d[key], ability[key])
         else:
-            d[key] = max(d[key], ability[key])
+            d[key] = min(d[key], ability[key]) if calc_min else max(d[key], ability[key])
     return d
+
+if __name__ == '__main__':
+    x = get_max_metrics()
