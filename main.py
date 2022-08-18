@@ -84,7 +84,6 @@ def load_skill(ab_id):
             'win_rate': 1,
             'win_rate_rounds': 1,
             'survival': 1,
-            'combos': 1,
             'scepter_pickup_rate': 1,
             'scepter_win_w': 1,
             'scepter_win_wo': 1,
@@ -92,6 +91,8 @@ def load_skill(ab_id):
             'shard_win_w': 1,
             'shard_win_wo': 1,
         })
+
+
     return skill_details
 
 

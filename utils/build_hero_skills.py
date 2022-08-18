@@ -15,9 +15,15 @@ def is_ult(skill):
         return False
 
 def update_hero_skills():
+    hero_skills = {}
     for hero, data in heroes.items():
-        if type(data) is not dict or hero in ['npc_dota_hero_base', 'npc_dota_hero_invoker']:
+        if type(data) is not dict or hero in ['npc_dota_hero_base']:
             continue
+
+        if hero == 'npc_dota_hero_invoker':
+            hero_skills[hero] = [x for x in data["AbilityDraftAbilities"].values()]
+            continue
+
         skills = [None] * 4
         try:
             if "AbilityDraftAbilities" in data:

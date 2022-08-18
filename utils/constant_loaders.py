@@ -97,7 +97,10 @@ def load_ultimates():
     for hero_id, hero in hero_abs.items():
         try:
             hero_details = heroes[str(hero_id)]
-            ability_id = hero_ab_list[hero_id][3]
+            if hero_id == 74:
+                ability_id = None
+            else:
+                ability_id = hero_ab_list[hero_id][3]
             if ability_id is None:
                 ability_id == -1
                 ability_name = "Needs Selection"
