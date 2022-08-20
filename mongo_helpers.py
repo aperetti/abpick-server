@@ -122,5 +122,9 @@ def get_max_metrics(calc_min=False):
             d[key] = min(d[key], ability[key]) if calc_min else max(d[key], ability[key])
     return d
 
+def get_hero_skill_stats():
+    return list(db.get_collection("heros").find({}))
+
+
 if __name__ == '__main__':
     x = get_max_metrics()

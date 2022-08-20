@@ -6,6 +6,7 @@ pick = PickAnalysis()
 id_lu = load_ability_details_by_id()
 
 PickAnalysis().combo_picks()
+
 for id in tqdm(pick.get_distinct_abilities()):
     try:
         pick.set_pick_id(id).save_pick_analytics()

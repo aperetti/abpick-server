@@ -6,7 +6,7 @@ import simplejson
 import humps
 import string
 import random
-from mongo_helpers import getBestCombos, getSkillMetrics, update_room, get_room_state, create_room, get_active_room, update_room_count
+from mongo_helpers import get_hero_skill_stats, getBestCombos, getSkillMetrics, update_room, get_room_state, create_room, get_active_room, update_room_count
 from functools import lru_cache
 from bson.objectid import ObjectId
 
@@ -257,7 +257,8 @@ def load_all_heroes():
         skill_dict[hero] = load_skills(skills)
     res = {
         "skill_dict": skill_dict,
-        "hero_dict": hero_dict
+        "hero_dict": hero_dict,
+        "hero_skill_stats": get_hero_skill_stats()
     }
     return simplejson.dumps(humps.camelize(res), ignore_nan=True)
 

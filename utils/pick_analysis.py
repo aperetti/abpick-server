@@ -43,7 +43,7 @@ class PickAnalysis:
         self.matches: Collection = self.db.match_details
         self.abilities: Collection = self.db.get_collection("abilities")
         self.ab_abilities: Collection = self.db.get_collection("ab_abilities")
-        self.days = 60
+        self.days = 90
         self.ability_id = None
         self.pick_data = None
 
@@ -276,6 +276,64 @@ class PickAnalysis:
         self.pick_data = self.__load_ability_picks__()
         return self
 
+    def hero_stats(self):
+        cursor: CommandCursor = self.matches.find(
+            {
+                "duration": {"$gt": 900},
+                "start_time": {"$gt": time.time() - 60*60*24*self.days}
+            },
+            {
+                "players.ability_upgrades_arr": 1,
+                "players.hero_id": 1,
+                "players.gold_per_min": 1,
+                "players.hero_damage": 1,
+                "players.kills": 1,
+                "players.deaths": 1,
+                "players.assists": 1,
+                "players.xp_per_min": 1,
+                "players.tower_damage": 1,
+                "duration": 1,
+                "players.is_radiant": 1,
+                "radiant_win": 1
+            }
+        )
+
+        heros_coll = self.db.get_collection("heros")
+        heros_coll.delete_many({})
+        hero_skill = defaultdict(lambda: defaultdict(lambda: np.zeros(2, np.int64)))
+        hero_stats = defaultdict(lambda: np.zeros(2, np.int64))
+        for match in tqdm(cursor):
+            for player in match["players"]:
+                hero_id = player["hero_id"]
+                win = 0 if (player["is_radiant"] ^ match["radiant_win"]) else 1
+                hero_stats[hero_id] += [win, 1]
+
+                for skill in np.unique(player['ability_upgrades_arr']):
+                    hero_skill[hero_id][skill] += [win, 1]
+
+        for hero_id, skills in tqdm(hero_skill.items()):
+            h_stat = hero_stats[hero_id]
+            hero_dict = {
+                "_id": hero_id,
+                "win_rate": float(h_stat[0] * 1.0 / h_stat[1])
+            }
+
+            hero_skills = []
+            for skill_id, stats in skills.items():
+                win_pct = float(stats[0] * 1.0 / (stats[1]))
+                if stats[1] > 15 and win_pct - .5/np.sqrt(stats[1]) > .5:
+                    hero_skills.append({
+                        "id": int(skill_id),
+                        "matches": int(stats[1]),
+                        "win_rate": float(stats[0] * 1.0 / stats[1])
+                    })
+            hero_dict["skills"] = hero_skills
+            heros_coll.insert_one(hero_dict)
+
+
+
+
 
 if __name__ == '__main__':
-    df_main = PickAnalysis().combo_picks()
+    # df_main = PickAnalysis().combo_picks()
+    df_main = PickAnalysis().hero_stats()
