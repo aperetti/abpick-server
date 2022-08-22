@@ -168,7 +168,7 @@ class PickAnalysis:
                 for combo in combinations(np.unique(player['ability_upgrades_arr']), 2):
                     combo_dict[combo] += new_stats
 
-        def get_synergy(skill1, skill2):
+        def get_average(skill1, skill2):
             skill1_win = single_dict[skill1][0] * 1.0 / single_dict[skill1][1]
             skill2_win = single_dict[skill2][0] * 1.0 / single_dict[skill2][1]
             return (skill1_win + skill2_win)/2
@@ -177,8 +177,10 @@ class PickAnalysis:
         combo_docs = [
             {
                 "_id": {"skill1": int(key[0]), "skill2": int(key[1])},
-                "avg_win_pct": get_synergy(key[0], key[1]),
-                "win_pct": vals[0] / vals[1],
+                "avg_win_pct": get_average(key[0], key[1]),
+                "raw_win_pct": vals[0] / vals[1],
+                "win_pct": vals[0] / vals[1] - .5 / np.sqrt(vals[1]),
+                "synergy": vals[0] / vals[1] - .5 / np.sqrt(vals[1]) - get_average(key[0], key[1]),
                 "gold": vals[2] / vals[1],
                 "damage": vals[3] / vals[1],
                 "kills": vals[4] / vals[1],
@@ -187,7 +189,7 @@ class PickAnalysis:
                 "xp": vals[7] / vals[1],
                 "tower": vals[8] / vals[1],
                 "matches": vals[1]
-            } for key, vals in combo_dict.items() if vals[1] > 50]
+            } for key, vals in combo_dict.items() if vals[1] > 25 and vals[0] / vals[1] - .5/np.sqrt(vals[1]) > .5]
         combos.insert_many(combo_docs)
         for skill_id, vals in single_dict.items():
             try:
@@ -300,7 +302,8 @@ class PickAnalysis:
 
         heros_coll = self.db.get_collection("heros")
         heros_coll.delete_many({})
-        hero_skill = defaultdict(lambda: defaultdict(lambda: np.zeros(2, np.int64)))
+        hero_skill = defaultdict(
+            lambda: defaultdict(lambda: np.zeros(2, np.int64)))
         hero_stats = defaultdict(lambda: np.zeros(2, np.int64))
         for match in tqdm(cursor):
             for player in match["players"]:
@@ -329,9 +332,6 @@ class PickAnalysis:
                     })
             hero_dict["skills"] = hero_skills
             heros_coll.insert_one(hero_dict)
-
-
-
 
 
 if __name__ == '__main__':

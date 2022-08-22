@@ -3,6 +3,7 @@ from pymongo.results import InsertOneResult
 from datetime import datetime
 from bson.objectid import ObjectId
 from itertools import combinations, product
+from collections import Iterable
 
 client = MongoClient()
 db = client.get_database("dota")
@@ -38,7 +39,10 @@ def getSkillMetrics(skills):
 
 
 def getBestCombos(picked_skills, available_skills):
-    combos = product(picked_skills, available_skills)
+    if isinstance(picked_skills, Iterable) and len(picked_skills) > 0:
+        combos = product(picked_skills, available_skills)
+    else:
+        combos = combinations(available_skills, 2)
     search = []
     for x in combos:
         if x[0] > x[1]:
