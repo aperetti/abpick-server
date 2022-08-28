@@ -6,6 +6,7 @@ pick = PickAnalysis()
 id_lu = load_ability_details_by_id()
 
 PickAnalysis().combo_picks()
+PickAnalysis().hero_stats()
 
 for id in tqdm(pick.get_distinct_abilities()):
     try:

@@ -146,20 +146,18 @@ class PickAnalysis:
                 "players.assists": 1,
                 "players.xp_per_min": 1,
                 "players.tower_damage": 1,
+                "players.win": 1,
                 "duration": 1,
-                "radiant_win": 1
             }
         )
 
         for match in tqdm(cursor):
             mmin = match['duration'] / 60
             for i, player in enumerate(match['players']):
-                win = 1 if (i % 2 == 0 and match['radiant_win']) or (
-                    i % 2 == 1 and not match['radiant_win']) else 0
                 skills = np.unique(player['ability_upgrades_arr'])
 
                 # wins, played, gold, damage, kills, deaths, assists, xp, tower
-                new_stats = [win, 1, player['gold_per_min'], player['hero_damage'] / mmin,
+                new_stats = [player["win"], 1, player['gold_per_min'], player['hero_damage'] / mmin,
                              player['kills'] / mmin, player['deaths'] /
                              mmin, player['assists'] / mmin,
                              player['xp_per_min'], player['tower_damage'] / mmin]
@@ -295,8 +293,7 @@ class PickAnalysis:
                 "players.xp_per_min": 1,
                 "players.tower_damage": 1,
                 "duration": 1,
-                "players.is_radiant": 1,
-                "radiant_win": 1
+                "players.win": 1
             }
         )
 
@@ -308,7 +305,7 @@ class PickAnalysis:
         for match in tqdm(cursor):
             for player in match["players"]:
                 hero_id = player["hero_id"]
-                win = 0 if (player["is_radiant"] ^ match["radiant_win"]) else 1
+                win = player["win"]
                 hero_stats[hero_id] += [win, 1]
 
                 for skill in np.unique(player['ability_upgrades_arr']):
