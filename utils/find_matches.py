@@ -1,3 +1,4 @@
+from time import sleep, time
 import od_python
 from od_python import InlineResponse20015, InlineResponse2009, rest
 from typing import List
@@ -5,6 +6,7 @@ from db import Database, AbilityPlayer
 from datetime import timedelta, datetime
 from os import environ
 from tqdm.auto import tqdm
+import pymongo
 
 api_key = environ.get('API_KEY')
 print(api_key)
@@ -18,7 +20,7 @@ class FindMatches:
         self.db = Database()
         pass
 
-    def find_new_matches(self, account_id, age_limit: timedelta = timedelta(weeks=8), max_queries=100):
+    def find_new_matches(self, account_id, age_limit: timedelta = timedelta(days=4), max_queries=100):
         player = self.db.get_player(account_id)
         for i in range(max_queries):
             try:
@@ -44,7 +46,7 @@ class FindMatches:
                 break
 
     def get_ab_players(self) -> List[AbilityPlayer]:
-        players: List[AbilityPlayer] = list(self.db.ab_players.find().sort([("last_run", -1)]))
+        players: List[AbilityPlayer] = list(self.db.ab_players.find().sort([("last_run", -1), ("last_played", pymongo.DESCENDING)]))
         players = [x for x in players if datetime.fromtimestamp(x['last_run']) + timedelta(weeks=2) < datetime.now()]
         return players
 
@@ -65,10 +67,14 @@ if __name__ == "__main__":
 
     search = FindMatches()
 
-    players = search.get_ab_players()
     total_parsed = 0
-    for player in tqdm(players, "Finding New Matches from AB Players", position=0):
-        search.find_new_matches(player['_id'])
-        total_parsed += search.parse_matches(bar_position=1)
-        if total_parsed > 50000:
-            break
+    while True:
+        players = search.get_ab_players()
+        for player in tqdm(players, "Finding New Matches from AB Players", position=0):
+            try:
+                search.find_new_matches(player['_id'])
+                total_parsed += search.parse_matches(bar_position=1)
+                if total_parsed > 50000:
+                    break
+            except:
+                sleep(5)

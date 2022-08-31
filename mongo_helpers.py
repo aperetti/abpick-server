@@ -59,7 +59,13 @@ def getBestCombos(picked_skills, available_skills):
             skill = combo["_id"]["skill1"]
             picked = combo["_id"]["skill2"]
 
-        res.append({"skill": skill, "picked": picked, "avg_win_pct": combo["avg_win_pct"], "win_pct": combo["win_pct"]})
+        res.append({
+            "skill": skill,
+            "picked": picked,
+            "avg_win_pct": combo["avg_win_pct"],
+            "win_pct": combo["win_pct"],
+            "matches": combo["matches"],
+            "synergy": combo["synergy"]})
 
     return res
 

@@ -15,10 +15,14 @@ from collections import defaultdict, Counter
 import json
 from requests import delete
 from tqdm import tqdm
+from constant_loaders import load_list_ad_abilitity_ids
 
 
 class NoSkillDataException(Exception):
     pass
+
+
+ability_ids = {x: 1 for x in load_list_ad_abilitity_ids()}
 
 
 @dataclass
@@ -155,6 +159,7 @@ class PickAnalysis:
             mmin = match['duration'] / 60
             for i, player in enumerate(match['players']):
                 skills = np.unique(player['ability_upgrades_arr'])
+                skills = [skill for skill in skills if skill in ability_ids]
 
                 # wins, played, gold, damage, kills, deaths, assists, xp, tower
                 new_stats = [player["win"], 1, player['gold_per_min'], player['hero_damage'] / mmin,
@@ -163,7 +168,7 @@ class PickAnalysis:
                              player['xp_per_min'], player['tower_damage'] / mmin]
                 for skill in skills:
                     single_dict[skill] += new_stats
-                for combo in combinations(np.unique(player['ability_upgrades_arr']), 2):
+                for combo in combinations(skills, 2):
                     combo_dict[combo] += new_stats
 
         def get_average(skill1, skill2):
@@ -172,22 +177,34 @@ class PickAnalysis:
             return (skill1_win + skill2_win)/2
 
         combos.delete_many({})
-        combo_docs = [
-            {
-                "_id": {"skill1": int(key[0]), "skill2": int(key[1])},
-                "avg_win_pct": get_average(key[0], key[1]),
-                "raw_win_pct": vals[0] / vals[1],
-                "win_pct": vals[0] / vals[1] - .5 / np.sqrt(vals[1]),
-                "synergy": vals[0] / vals[1] - .5 / np.sqrt(vals[1]) - get_average(key[0], key[1]),
-                "gold": vals[2] / vals[1],
-                "damage": vals[3] / vals[1],
-                "kills": vals[4] / vals[1],
-                "deaths": vals[5] / vals[1],
-                "assists": vals[6] / vals[1],
-                "xp": vals[7] / vals[1],
-                "tower": vals[8] / vals[1],
-                "matches": vals[1]
-            } for key, vals in combo_dict.items() if vals[1] > 25 and vals[0] / vals[1] - .5/np.sqrt(vals[1]) > .5]
+        combo_docs = []
+        for key, vals in combo_dict.items():
+            win_pct = float(vals[0] * 1.0 / (vals[1]))
+            # 1.96 == 95% interval
+            variance = max(.1, (1-win_pct)*win_pct)
+            uncertainty = 1.96 * np.sqrt(variance/vals[1])
+
+            win_pct = max(.5, win_pct -
+                          uncertainty) if win_pct > .5 else min(.5, win_pct + uncertainty)
+            avg_pct = get_average(key[0], key[1])
+
+            if win_pct != .5 and vals[1] > 20:
+                combo_docs.append({
+                    "_id": {"skill1": int(key[0]), "skill2": int(key[1])},
+                    "avg_win_pct": avg_pct,
+                    "raw_win_pct": vals[0] / vals[1],
+                    "win_pct": win_pct,
+                    "synergy": win_pct - avg_pct,
+                    "gold": vals[2] / vals[1],
+                    "damage": vals[3] / vals[1],
+                    "kills": vals[4] / vals[1],
+                    "deaths": vals[5] / vals[1],
+                    "assists": vals[6] / vals[1],
+                    "xp": vals[7] / vals[1],
+                    "tower": vals[8] / vals[1],
+                    "matches": vals[1]
+                })
+
         combos.insert_many(combo_docs)
         for skill_id, vals in single_dict.items():
             try:
@@ -320,8 +337,16 @@ class PickAnalysis:
 
             hero_skills = []
             for skill_id, stats in skills.items():
+                if skill_id is None:
+                    continue
                 win_pct = float(stats[0] * 1.0 / (stats[1]))
-                if stats[1] > 15 and win_pct - .5/np.sqrt(stats[1]) > .5:
+                # 1.96 == 95% interval
+                variance = max(.1, (1-win_pct)*win_pct)
+                uncertainty = 1.96 * np.sqrt(variance/stats[1])
+
+                win_pct = max(.5, win_pct - uncertainty) if win_pct > .5 else min(.5, win_pct + uncertainty)
+
+                if win_pct != .5 and stats[1] > 20:
                     hero_skills.append({
                         "id": int(skill_id),
                         "matches": int(stats[1]),

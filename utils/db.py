@@ -95,7 +95,7 @@ class Database:
                 if player["account_id"] is not None:
                     self.ab_players.update_one({"_id": player['account_id']},
                         {
-                            "$max": {"last_run": 0},
+                            "$max": {"last_run": 0, "last_played": match["start_time"]},
                             "$set": {"rank": player["rank_tier"]},
                             "$inc": {
                                 "win": 1 if player_won else 0,
