@@ -16,6 +16,7 @@ import json
 from requests import delete
 from tqdm import tqdm
 from constant_loaders import load_list_ad_abilitity_ids
+from sklearn.linear_model import LinearRegression
 
 
 class NoSkillDataException(Exception):
@@ -41,13 +42,13 @@ def updatePlayerStats():
 
 
 class PickAnalysis:
-    def __init__(self):
+    def __init__(self, days=60):
         self.client = MongoClient()
         self.db = self.client.get_database("dota")
         self.matches: Collection = self.db.match_details
         self.abilities: Collection = self.db.get_collection("abilities")
         self.ab_abilities: Collection = self.db.get_collection("ab_abilities")
-        self.days = 90
+        self.days = days
         self.ability_id = None
         self.pick_data = None
 
@@ -101,45 +102,17 @@ class PickAnalysis:
 
         return df
 
-    def __load_ability_picks__(self) -> pd.DataFrame:
-        cursor: CommandCursor = self.matches.aggregate(
-            [
-                {"$match":
-                    {
-                        "ability_draft.skills": self.ability_id,
-                        "duration": {"$gt": 900},
-                        "start_time": {"$gt": time.time() - 60*60*24*self.days}
-                    }
-                 },
-                {
-                    "$project": {
-                        "position": {"$indexOfArray": ["$ability_draft.drafts", self.ability_id]},
-                        "radiant_win": 1
-                    }
-                }
-            ])
-
-        arr = np.asarray([[x['radiant_win'], x['position']] for x in cursor])
-        if arr.size == 0:
-            raise NoSkillDataException
-
-        arr = np.hstack(
-            [arr, (arr[:, 1] % 2 == (arr[:, 0] + 1) % 2)[..., None]])
-        df = pd.DataFrame(arr, columns=['radiant_win', 'pick', 'win'])
-        df.loc[df['pick'] == -1, 'pick'] = 40
-
-        return df
-
-    def combo_picks(self):
+    def combo_picks(self, override_days=None):
         # combo_dict = defaultdict(Counter)
         # wins, played, gold, damage, kills, deaths, assists, xp, tower
+        days = override_days if override_days is not None else self.days
         combo_dict = defaultdict(lambda: np.zeros(9).astype(np.float64))
         single_dict = defaultdict(lambda: np.zeros(9).astype(np.float64))
         combos = self.db.get_collection('combos')
         cursor: CommandCursor = self.matches.find(
             {
                 "duration": {"$gt": 900},
-                "start_time": {"$gt": time.time() - 60*60*24*self.days}
+                "start_time": {"$gt": time.time() - 60*60*24*days}
             },
             {
                 "players.ability_upgrades_arr": 1,
@@ -236,7 +209,7 @@ class PickAnalysis:
             {"$set":
                 dict(
                     survival=list(self.get_pick_survival()),
-                    **self.get_pick_win_rates(),
+                    **self.get_round_win_rates(),
                     **self.get_pick_summary(),
                     **self.get_pick_rates()
                 )
@@ -255,6 +228,28 @@ class PickAnalysis:
         )
 
     def get_pick_win_rates(self):
+        df = self.pick_data
+        df_c = df.groupby('pick').count()['win']
+
+        df_g = df.groupby('pick').mean()['win']
+
+        df_g = df_g[df_c > 25]
+
+        if df_g.size > 3:
+            reg = LinearRegression().fit(df_g.index.values.reshape(1, -1).T, df_g.values)
+
+            return dict(
+                win_slope=reg.coef_[0],
+                win_intercept=reg.intercept_
+            )
+        else:
+            return dict(
+                win_slope=None,
+                win_intercept=None
+            )
+
+
+    def get_round_win_rates(self):
         df = self.pick_data
         return dict(
             win_rate_rounds=[df.loc[df['pick'].between(
@@ -293,11 +288,13 @@ class PickAnalysis:
         self.pick_data = self.__load_ability_picks__()
         return self
 
-    def hero_stats(self):
+    def hero_stats(self, override_days=None):
+
+        days = override_days if override_days is not None else self.days
         cursor: CommandCursor = self.matches.find(
             {
                 "duration": {"$gt": 900},
-                "start_time": {"$gt": time.time() - 60*60*24*self.days}
+                "start_time": {"$gt": time.time() - 60*60*24*days}
             },
             {
                 "players.ability_upgrades_arr": 1,
@@ -344,7 +341,8 @@ class PickAnalysis:
                 variance = max(.1, (1-win_pct)*win_pct)
                 uncertainty = 1.96 * np.sqrt(variance/stats[1])
 
-                win_pct = max(.5, win_pct - uncertainty) if win_pct > .5 else min(.5, win_pct + uncertainty)
+                win_pct = max(.5, win_pct -
+                              uncertainty) if win_pct > .5 else min(.5, win_pct + uncertainty)
 
                 if win_pct != .5 and stats[1] > 20:
                     hero_skills.append({
@@ -358,4 +356,4 @@ class PickAnalysis:
 
 if __name__ == '__main__':
     # df_main = PickAnalysis().combo_picks()
-    df_main = PickAnalysis().hero_stats()
+    df_main = PickAnalysis().set_pick_id(5159).get_pick_win_rates()

@@ -5,3 +5,4 @@
 resources/skill_training.pkl
 resources/skill_training_v2.pkl
 resources/team_predict.json
+logs/logs.log

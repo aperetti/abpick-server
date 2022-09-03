@@ -106,6 +106,7 @@ class Database:
                         upsert=True)
         except DuplicateKeyError:
             print(f"Already Parsed {match['match_id']}")
+            self.matches.update_one({"_id": match["_id"]}, {"$set": {"parsed": True}})
 
 
     def get_unparsed_matches(self) -> List[PlayerMatches]:

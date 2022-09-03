@@ -20,7 +20,7 @@ class FindMatches:
         self.db = Database()
         pass
 
-    def find_new_matches(self, account_id, age_limit: timedelta = timedelta(days=4), max_queries=100):
+    def find_new_matches(self, account_id, age_limit: timedelta = timedelta(days=6), max_queries=100):
         player = self.db.get_player(account_id)
         for i in range(max_queries):
             try:

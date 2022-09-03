@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Python: Current File",
             "type": "python",
@@ -21,6 +22,17 @@
             "justMyCode": true,
             "env": {
                 "API_KEY": "8e893d44-3b83-4bf7-a4a7-af3345d8f182"
+            }
+        }
+        {
+            "name": "Steam API Stream",
+            "type": "python",
+            "request": "launch",
+            "program": "./utils/dota_api.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "DOTA_API_KEY": "2C3FC11CB3AF8A42FB942B2D5C8D81F5"
             }
         }
     ]
