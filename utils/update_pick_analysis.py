@@ -2,10 +2,10 @@ from pick_analysis import NoSkillDataException, PickAnalysis
 from constant_loaders import load_ability_details_by_id
 from tqdm import tqdm
 
-pick = PickAnalysis()
+pick = PickAnalysis(days=7)
 id_lu = load_ability_details_by_id()
 
-PickAnalysis().combo_picks()
+PickAnalysis().combo_picks(override_days=90)
 PickAnalysis().hero_stats()
 
 for id in tqdm(pick.get_distinct_abilities()):
