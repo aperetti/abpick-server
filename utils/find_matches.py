@@ -59,6 +59,18 @@ class FindMatches:
             self.db.insert_match_details(match_detail)
         return match_count
 
+    def parse_match(self, id):
+        try:
+            match_detail: InlineResponse2009 = self.match_client.matches_match_id_get(match_id=id)
+            if match_detail.game_mode == 18:
+                self.db.insert_match_details(match_detail)
+                return True
+            else:
+                return False
+        except:
+            return False
+
+
     def prime_players(self):
         self.db.get
 
