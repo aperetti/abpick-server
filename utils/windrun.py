@@ -47,24 +47,24 @@ for id, record in df.to_dict('index').items():
 
 
 
-res = requests.get("https://windrun.io/ability-pairs")
-doc = html.fromstring(res.content)
-ags_dict = {
-    "abilities_1": [name_dict[x.strip()] for x in doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[2]/text()')],
-    "abilities_2": [name_dict[x.strip()] for x in doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[5]/text()')],
-    "sample_size": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[7]/text()')),
-    "win_pct": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[8]/text()')),
-    "synergy": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[9]/text()')),
-}
-df = pd.DataFrame(ags_dict)
-df['sample_size'] = df['sample_size'] * 100
-df1 = df.copy()
-df1.rename(columns={"abilities_1": "abilities_2", "abilities_2": "abilities_1"}, inplace=True)
-df = pd.concat([df, df1], axis=0)
-df['abilities_2'] = df['abilities_2'].astype(str)
-dfgs = df.groupby('abilities_1')
-for id, dfg in dfgs:
-    dfg = dfg.drop_duplicates(subset='abilities_2', keep='first')
+# res = requests.get("https://windrun.io/ability-pairs")
+# doc = html.fromstring(res.content)
+# ags_dict = {
+#     "abilities_1": [name_dict[x.strip()] for x in doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[2]/text()')],
+#     "abilities_2": [name_dict[x.strip()] for x in doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[5]/text()')],
+#     "sample_size": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[7]/text()')),
+#     "win_pct": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[8]/text()')),
+#     "synergy": format_pct(doc.xpath('//*[@id="ability-pair-stats"]/tbody/tr/td[9]/text()')),
+# }
+# df = pd.DataFrame(ags_dict)
+# df['sample_size'] = df['sample_size'] * 100
+# df1 = df.copy()
+# df1.rename(columns={"abilities_1": "abilities_2", "abilities_2": "abilities_1"}, inplace=True)
+# df = pd.concat([df, df1], axis=0)
+# df['abilities_2'] = df['abilities_2'].astype(str)
+# dfgs = df.groupby('abilities_1')
+# for id, dfg in dfgs:
+#     dfg = dfg.drop_duplicates(subset='abilities_2', keep='first')
 
-    combos = dfg.drop('abilities_1', axis=1).set_index('abilities_2', inplace=False).to_dict('index')
-    abilities.update_one({"_id": id}, {"$set": {"combos": combos}})
+#     combos = dfg.drop('abilities_1', axis=1).set_index('abilities_2', inplace=False).to_dict('index')
+#     abilities.update_one({"_id": id}, {"$set": {"combos": combos}})
