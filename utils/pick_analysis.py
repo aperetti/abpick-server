@@ -38,7 +38,7 @@ def updatePlayerStats():
     matches: Collection = db.match_details
     players: Collection = db.players
 
-    {"$and": [{"skill": {"$ne": null}}, {"skill": {"$ne": 1}}]}
+    {"$and": [{"skill": {"$ne": None}}, {"skill": {"$ne": 1}}]}
 
 
 class PickAnalysis:

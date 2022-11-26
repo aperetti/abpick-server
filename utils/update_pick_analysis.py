@@ -5,9 +5,6 @@ from tqdm import tqdm
 pick = PickAnalysis(days=7)
 id_lu = load_ability_details_by_id()
 
-PickAnalysis().combo_picks(override_days=90)
-PickAnalysis().hero_stats()
-
 for id in tqdm(pick.get_distinct_abilities()):
     try:
         pick.set_pick_id(id).save_pick_analytics()
@@ -16,3 +13,6 @@ for id in tqdm(pick.get_distinct_abilities()):
         name = skill["dname"] if type(skill) == dict else skill
         print(f"No Skill Data for {name} ({id})")
         continue
+
+PickAnalysis().combo_picks(override_days=90)
+PickAnalysis().hero_stats()
