@@ -1,5 +1,5 @@
 wheel
-flask==2.1.2
+flask==2.3.2
 pymongo==4.1.1
 pyhumps==3.7.2
 simple-websocket==0.5.2
