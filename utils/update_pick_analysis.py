@@ -13,6 +13,7 @@ for id in tqdm(pick.get_distinct_abilities()):
             skill = id_lu[id]
         except KeyError:
             print(f"Could not identify skill {id}")
+            continue
         name = skill["dname"] if type(skill) == dict else skill
         print(f"No Skill Data for {name} ({id})")
         continue

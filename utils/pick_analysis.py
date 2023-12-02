@@ -204,8 +204,10 @@ class PickAnalysis:
         pass
 
     def save_pick_analytics(self):
+        # If you run into this again, for some reason the parser started multiplying the skills by 2, may look at fixing root problem.
+        # in meantime that's why we're dividing by two here. 
         self.abilities.update_one(
-            {"_id": self.ability_id},
+            {"_id": int(self.ability_id / 2)},
             {"$set":
                 dict(
                     survival=list(self.get_pick_survival()),
