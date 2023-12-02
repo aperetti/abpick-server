@@ -3,7 +3,7 @@ from pymongo.results import InsertOneResult
 from datetime import datetime
 from bson.objectid import ObjectId
 from itertools import combinations, product
-from collections import Iterable
+from collections.abc import Iterable
 
 client = MongoClient()
 db = client.get_database("dota")
